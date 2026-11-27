@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Universal 3D × MiniMax H3 Studio</title>
+  <style>
+    /* =========================================================================
+       Google Material Design 3 (Material You) Design System Tokens
+       ========================================================================= */
+    :root,
+    html[data-theme="dark"] {
+      --md-surface: #111318;
+      --md-surface-container-lowest: #0c0e12;
+      --md-surface-container-low: #171a21;
+      --md-surface-container: #1d2028;
+      --md-surface-container-high: #262a34;
+      --md-surface-container-highest: #313643;
+      --md-on-surface: #e3e6ee;
+      --md-on-surface-variant: #9aa3b2;
+      --md-outline: #525a6a;
+      --md-outline-variant: rgba(255, 255, 255, 0.09);
+
+      --md-primary: #a8c7fa;
+      --md-on-primary: #062e6f;
+      --md-primary-container: #1b3a6b;
+      --md-on-primary-container: #d3e3fd;
+
+      --md-secondary-container: #283142;
+      --md-on-secondary-container: #d3e3fd;
+
+      --md-success: #81c995;
+      --md-warning: #fdd663;
+      --md-error: #f2b8b5;
+      --md-error-container: rgba(242, 184, 181, 0.14);
+
+      --md-scrim: rgba(15, 18, 24, 0.76);
+      --md-scrim-border: rgba(255, 255, 255, 0.12);
+      --md-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px 1px rgba(0, 0, 0, 0.18);
+      --md-elevation-2: 0 4px 16px rgba(0, 0, 0, 0.42), 0 1px 3px rgba(0, 0, 0, 0.25);
+
+      --md-radius-sm: 8px;
+      --md-radius-md: 12px;
+      --md-radius-lg: 16px;
+      --md-radius-xl: 22px;
+      --md-radius-full: 9999px;
+
+      --md-ease: cubic-bezier(0.2, 0, 0, 1);
+      color-scheme: dark;
+    }
+
+    html[data-theme="light"] {
+      --md-surface: #f4f6fa;
+      --md-surface-container-lowest: #ffffff;
+      --md-surface-container-low: #f8f9fc;
+      --md-surface-container: #ffffff;
+      --md-surface-container-high: #eef2f8;
+      --md-surface-container-highest: #e2e8f2;
+      --md-on-surface: #1f1f1f;
+      --md-on-surface-variant: #5f6368;
+      --md-outline: #747775;
+      --md-outline-variant: #e0e4ec;
+
+      --md-primary: #1a73e8;
+      --md-on-primary: #ffffff;
+      --md-primary-container: #d3e3fd;
+      --md-on-primary-container: #041e49;
+
+      --md-secondary-container: #e8f0fe;
+      --md-on-secondary-container: #174ea6;
+
+      --md-success: #188038;
+      --md-warning: #e37400;
+      --md-error: #c5221f;
+      --md-error-container: #fce8e6;
+
+      --md-scrim: rgba(20, 24, 31, 0.78);
+      --md-scrim-border: rgba(255, 255, 255, 0.16);
+      --md-elevation-1: 0 1px 2px rgba(60, 64, 67, 0.12), 0 1px 3px 1px rgba(60, 64, 67, 0.08);
+      --md-elevation-2: 0 6px 20px rgba(60, 64, 67, 0.16), 0 2px 6px rgba(60, 64, 67, 0.1);
+      color-scheme: light;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    body {
+      font-family: 'Google Sans', 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 220ms var(--md-ease), color 220ms var(--md-ease);
+    }
+
+    button, input, select, textarea { font-family: inherit; color: inherit; }
+    .hidden { display: none !important; }
+    .mono { font-family: 'Google Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+    .icon { width: 16px; height: 16px; flex-shrink: 0; display: inline-block; }
+    .icon-sm { width: 14px; height: 14px; flex-shrink: 0; display: inline-block; }
+
+    /* Top App Bar */
+    .m3-topbar {
+      flex-shrink: 0;
+      height: 58px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--md-surface);
+      border-bottom: 1px solid var(--md-outline-variant);
+    }
+    .m3-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .m3-logo {
+      width: 30px; height: 30px; border-radius: 10px;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .m3-title {
+      margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .m3-tag {
+      font-size: 12px; font-weight: 500;
+      padding: 2px 9px; border-radius: var(--md-radius-full);
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface-variant);
+      white-space: nowrap;
+    }
+    .m3-topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    /* Material 3 Buttons */
+    .m3-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      height: 36px; padding: 0 16px;
+      border-radius: var(--md-radius-full);
+      font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em;
+      border: 1px solid transparent;
+      cursor: pointer; user-select: none; white-space: nowrap;
+      transition: background-color 160ms var(--md-ease), border-color 160ms var(--md-ease), box-shadow 160ms var(--md-ease), transform 120ms var(--md-ease);
+    }
+    .m3-btn:active { transform: scale(0.98); }
+    .m3-btn-sm { height: 32px; padding: 0 12px; font-size: 12px; }
+    .m3-btn-lg { height: 44px; padding: 0 20px; font-size: 13px; width: 100%; }
+
+    .m3-btn-filled {
+      background: var(--md-primary); color: var(--md-on-primary);
+      box-shadow: var(--md-elevation-1);
+    }
+    .m3-btn-filled:hover { filter: brightness(1.06); box-shadow: var(--md-elevation-2); }
+
+    .m3-btn-tonal {
+      background: var(--md-secondary-container); color: var(--md-on-secondary-container);
+    }
+    .m3-btn-tonal:hover { filter: brightness(1.08); }
+
+    .m3-btn-outlined {
+      background: transparent; color: var(--md-on-surface);
+      border-color: var(--md-outline-variant);
+    }
+    .m3-btn-outlined:hover { background: var(--md-surface-container-high); border-color: var(--md-outline); }
+
+    .m3-btn-danger {
+      background: transparent; color: var(--md-error);
+      border-color: var(--md-outline-variant);
+    }
+    .m3-btn-danger:hover { background: var(--md-error-container); border-color: var(--md-error); }
+
+    .m3-icon-btn {
+      width: 36px; height: 36px; padding: 0; border-radius: var(--md-radius-full);
+      border: 1px solid var(--md-outline-variant);
+      background: var(--md-surface-container);
+      color: var(--md-on-surface-variant);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background-color 160ms var(--md-ease), color 160ms var(--md-ease);
+    }
+    .m3-icon-btn:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
+
+    .m3-status-chip {
+      display: inline-flex; align-items: center; gap: 7px;
+      height: 34px; padding: 0 12px;
+      border-radius: var(--md-radius-full);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
+      font-size: 12px; font-weight: 500;
+      cursor: pointer;
+      transition: background-color 160ms var(--md-ease);
+    }
+    .m3-status-chip:hover { background: var(--md-surface-container-high); }
+    .m3-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .m3-dot-warn { background: var(--md-warning); }
+    .m3-dot-ok { background: var(--md-success); }
+
+    /* Main Workspace Shell */
+    .m3-workspace {
+      flex: 1 1 0%;
+      min-height: 0;
+      display: flex;
+      gap: 14px;
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    /* Left: 3D Stage Container */
+    #drop-zone {
+      position: relative;
+      flex: 1 1 0%;
+      min-width: 0;
+      min-height: 0;
+      border-radius: var(--md-radius-xl);
+      background: #0c1018;
+      border: 1px solid var(--md-outline-variant);
+      overflow: hidden;
+      box-shadow: var(--md-elevation-1);
+    }
+    #glcanvas {
+      position: absolute; inset: 0; z-index: 0;
+      display: block; width: 100%; height: 100%;
+      cursor: grab;
+    }
+    #glcanvas:active { cursor: grabbing; }
+
+    /* Floating Stage Overlays */
+    .stage-top {
+      position: absolute; top: 14px; left: 14px; right: 14px; z-index: 10;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      pointer-events: none;
+    }
+    .stage-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: var(--md-radius-full);
+      background: var(--md-scrim);
+      border: 1px solid var(--md-scrim-border);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      color: #f1f5f9; font-size: 12px; font-weight: 500;
+    }
+    .stage-pill-accent { color: #a8c7fa; }
+    .stage-pill-rec {
+      background: rgba(217, 48, 37, 0.92);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #ffffff; font-weight: 600;
+    }
+
+    .stage-drop-overlay {
+      position: absolute; inset: 12px; z-index: 25;
+      border-radius: var(--md-radius-lg);
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(8px);
+      border: 2px dashed var(--md-primary);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      color: #ffffff; font-size: 14px; font-weight: 600;
+      pointer-events: none;
+    }
+
+    /* Bottom Floating Material 3 Dock */
+    .stage-bottom {
+      position: absolute; bottom: 14px; left: 14px; right: 14px; z-index: 10;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+      pointer-events: none;
+    }
+    .m3-dock {
+      pointer-events: auto;
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 8px;
+      border-radius: var(--md-radius-full);
+      background: var(--md-scrim);
+      border: 1px solid var(--md-scrim-border);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      box-shadow: var(--md-elevation-2);
+      color: #f1f5f9;
+    }
+    .m3-dock-play {
+      width: 34px; height: 34px; border-radius: 50%; border: none;
+      background: rgba(255, 255, 255, 0.14); color: #ffffff;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background-color 150ms var(--md-ease);
+    }
+    .m3-dock-play:hover { background: rgba(255, 255, 255, 0.24); }
+    .m3-slider {
+      width: 140px; height: 4px; accent-color: #a8c7fa; cursor: pointer;
+    }
+    .m3-time { font-size: 12px; color: #cbd5e1; padding-right: 6px; min-width: 38px; text-align: right; }
+
+    .m3-dock-btn {
+      height: 34px; padding: 0 13px; border-radius: var(--md-radius-full);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f1f5f9; font-size: 12px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 6px;
+      cursor: pointer; transition: background-color 150ms var(--md-ease);
+    }
+    .m3-dock-btn:hover { background: rgba(255, 255, 255, 0.18); }
+    .m3-dock-btn-primary {
+      background: #a8c7fa; color: #062e6f; border-color: transparent;
+    }
+    .m3-dock-btn-primary:hover { background: #c2d9ff; }
+
+    /* Material 3 Snackbar */
+    .m3-snackbar {
+      position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%) translateY(8px);
+      z-index: 30; opacity: 0; pointer-events: none;
+      padding: 10px 18px; border-radius: var(--md-radius-md);
+      background: #282c34; color: #f8fafc;
+      font-size: 12.5px; font-weight: 500;
+      box-shadow: var(--md-elevation-2);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: opacity 200ms var(--md-ease), transform 200ms var(--md-ease);
+      white-space: nowrap;
+    }
+    .m3-snackbar.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Right: Material 3 Inspector Panel */
+    .m3-inspector {
+      width: 416px;
+      flex-shrink: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--md-radius-xl);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      box-shadow: var(--md-elevation-1);
+      overflow: hidden;
+    }
+
+    /* Segmented Navigation Tabs */
+    .m3-tabs {
+      flex-shrink: 0;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      padding: 8px 10px;
+      gap: 6px;
+      background: var(--md-surface-container-low);
+      border-bottom: 1px solid var(--md-outline-variant);
+    }
+    .m3-tab {
+      height: 38px; padding: 0 8px;
+      border: none; border-radius: var(--md-radius-full);
+      background: transparent;
+      color: var(--md-on-surface-variant);
+      font-size: 12.5px; font-weight: 600;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      cursor: pointer; white-space: nowrap;
+      transition: background-color 180ms var(--md-ease), color 180ms var(--md-ease);
+    }
+    .m3-tab:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
+    .m3-tab.is-active {
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+    }
+    .m3-badge {
+      min-width: 19px; height: 19px; padding: 0 6px;
+      border-radius: var(--md-radius-full);
+      background: var(--md-primary); color: var(--md-on-primary);
+      font-size: 11px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+
+    /* Scrollable Inspector Body */
+    .m3-body {
+      flex: 1 1 0%;
+      overflow-y: auto;
+      padding: 18px 16px;
+    }
+    .m3-body::-webkit-scrollbar { width: 6px; }
+    .m3-body::-webkit-scrollbar-thumb { background: var(--md-outline-variant); border-radius: 999px; }
+
+    .m3-pane { display: flex; flex-direction: column; gap: 18px; }
+    .m3-section { display: flex; flex-direction: column; gap: 10px; }
+    .m3-section-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .m3-label {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+      color: var(--md-on-surface-variant);
+    }
+    .m3-helper { font-size: 12px; color: var(--md-on-surface-variant); margin: 0; line-height: 1.55; }
+    .m3-divider { height: 1px; background: var(--md-outline-variant); margin: 0; border: 0; }
+
+    /* Tonal Surface Card */
+    .m3-card {
+      padding: 14px;
+      border-radius: var(--md-radius-lg);
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* Filter Chips & Option Grid */
+    .m3-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .m3-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .m3-grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+    .m3-chip {
+      height: 36px; padding: 0 12px;
+      border-radius: var(--md-radius-md);
+      border: 1px solid var(--md-outline-variant);
+      background: var(--md-surface-container-low);
+      color: var(--md-on-surface-variant);
+      font-size: 12px; font-weight: 500;
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: background-color 160ms var(--md-ease), color 160ms var(--md-ease), border-color 160ms var(--md-ease);
+    }
+    .m3-chip-left { justify-content: flex-start; }
+    .m3-chip:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
+    .m3-chip.is-active {
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+      border-color: var(--md-primary);
+      font-weight: 600;
+    }
+
+    .light-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.25); }
+
+    /* Form Controls */
+    .m3-field-group { display: flex; flex-direction: column; gap: 5px; }
+    .m3-input, .m3-select, .m3-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: var(--md-radius-md);
+      border: 1px solid var(--md-outline-variant);
+      background: var(--md-surface-container);
+      color: var(--md-on-surface);
+      font-size: 12.5px;
+      outline: none;
+      transition: border-color 150ms var(--md-ease), box-shadow 150ms var(--md-ease);
+    }
+    .m3-input:focus, .m3-select:focus, .m3-textarea:focus {
+      border-color: var(--md-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-primary) 24%, transparent);
+    }
+    .m3-textarea { resize: vertical; line-height: 1.55; }
+    .m3-link-btn {
+      background: none; border: none; padding: 0;
+      color: var(--md-primary); font-size: 12px; font-weight: 600;
+      cursor: pointer;
+    }
+    .m3-link-btn:hover { text-decoration: underline; }
+
+    /* Media Lists & Empty States */
+    .m3-empty {
+      padding: 14px 12px;
+      border-radius: var(--md-radius-md);
+      border: 1px dashed var(--md-outline-variant);
+      color: var(--md-on-surface-variant);
+      font-size: 12px; text-align: center;
+    }
+    .m3-thumb-card {
+      border-radius: var(--md-radius-md);
+      border: 1px solid var(--md-outline-variant);
+      background: var(--md-surface-container);
+      overflow: hidden;
+    }
+    .m3-thumb-card img { width: 100%; height: 60px; object-fit: cover; display: block; }
+    .m3-thumb-meta {
+      padding: 4px 6px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px; color: var(--md-on-surface-variant);
+    }
+    .m3-list-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 8px 10px;
+      border-radius: var(--md-radius-md);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      font-size: 12px;
+    }
+    .m3-del-btn {
+      width: 22px; height: 22px; border-radius: 50%; border: none;
+      background: transparent; color: var(--md-error);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; font-weight: 700;
+    }
+    .m3-del-btn:hover { background: var(--md-error-container); }
+
+    /* Linear Progress Bar */
+    .m3-progress-track {
+      width: 100%; height: 5px; border-radius: var(--md-radius-full);
+      background: var(--md-surface-container-highest); overflow: hidden;
+    }
+    .m3-progress-fill {
+      height: 100%; border-radius: var(--md-radius-full);
+      background: var(--md-primary);
+      transition: width 280ms var(--md-ease);
+    }
+
+    /* Responsive Adaptation */
+    @media (max-width: 960px) {
+      .m3-workspace { flex-direction: column; padding: 10px; gap: 10px; }
+      #drop-zone { min-height: 40vh; }
+      .m3-inspector { width: 100%; max-height: 52vh; }
+      .m3-tag { display: none; }
+      .m3-slider { width: 92px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top App Bar (Google Material 3) -->
+  <header class="m3-topbar">
+    <div class="m3-brand">
+      <div class="m3-logo" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/>
+          <path d="M12 12 4 7.5M12 12l8-4.5M12 12v9"/>
+        </svg>
+      </div>
+      <h1 class="m3-title">Universal 3D × MiniMax H3 Studio</h1>
+      <span class="m3-tag">SD · Ref2VA</span>
+    </div>
+
+    <div class="m3-topbar-actions">
+      <label class="m3-btn m3-btn-tonal m3-btn-sm">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span>3D読込 (.glb/.obj)</span>
+        <input id="inp-3d-file" type="file" accept=".glb,.obj" class="hidden" />
+      </label>
+
+      <button id="backend-pill" type="button" class="m3-status-chip" title="Colab L4 接続設定を開く">
+        <span id="backend-dot" class="m3-dot m3-dot-warn"></span>
+        <span id="backend-label">ローカルモード</span>
+      </button>
+
+      <button id="btn-theme" type="button" class="m3-icon-btn" title="ライト / ダーク切替" aria-label="テーマ切替">
+        <svg id="ico-theme" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="m3-workspace">
+
+    <!-- Left: Universal 3D Stage -->
+    <section id="drop-zone">
+      <canvas id="glcanvas"></canvas>
+
+      <!-- Top Floating Pills -->
+      <div class="stage-top">
+        <div id="scene-badge" class="stage-pill">Scene: 都市・建築ブロック</div>
+        <div id="cam-badge" class="stage-pill stage-pill-accent">カメラ: 360° オービット</div>
+        <div id="rec-badge" class="stage-pill stage-pill-rec hidden">● REC 0.0s / 5.0s</div>
+      </div>
+
+      <!-- Drag & Drop Overlay -->
+      <div id="drop-overlay" class="stage-drop-overlay hidden">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span>.glb / .obj 3Dモデル または 参照画像・動画・音声をドロップ</span>
+      </div>
+
+      <!-- Snackbar Toast -->
+      <div id="m3-snackbar" class="m3-snackbar" role="status" aria-live="polite"></div>
+
+      <!-- Bottom Floating M3 Toolbar -->
+      <div class="stage-bottom">
+        <div class="m3-dock">
+          <button id="btn-play" type="button" class="m3-dock-play" title="再生 / 一時停止" aria-label="再生切替">
+            <svg id="ico-play" class="icon" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="5" width="4" height="14" rx="1"/>
+              <rect x="14" y="5" width="4" height="14" rx="1"/>
+            </svg>
+          </button>
+          <input id="tl-slider" type="range" min="0" max="10" step="0.05" value="0" class="m3-slider" aria-label="タイムライン" />
+          <span id="tl-lbl" class="m3-time mono">0.0s</span>
+        </div>
+
+        <div class="m3-dock">
+          <button id="btn-add-kf-quick" type="button" class="m3-dock-btn">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <span>KF追加</span>
+          </button>
+          <button id="btn-snap" type="button" class="m3-dock-btn">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>参照画像</span>
+          </button>
+          <button id="btn-rec" type="button" class="m3-dock-btn m3-dock-btn-primary">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="23 7 16 12 23 17 23 7"/>
+              <rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+            <span>5秒SD録画</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Material 3 Workflow Inspector -->
+    <aside class="m3-inspector">
+      <nav class="m3-tabs" role="tablist">
+        <button data-tab="stage" type="button" class="tab-btn m3-tab is-active" role="tab">1. ステージ</button>
+        <button data-tab="media" type="button" class="tab-btn m3-tab" role="tab">
+          <span>2. 参照素材</span>
+          <span id="media-count" class="m3-badge">0</span>
+        </button>
+        <button data-tab="gen" type="button" class="tab-btn m3-tab" role="tab">3. H3 生成</button>
+      </nav>
+
+      <div class="m3-body">
+
+        <!-- TAB 1: Stage, Camera & Lighting -->
+        <div id="tab-stage" class="tab-pane m3-pane">
+          <div class="m3-section">
+            <span class="m3-label">3D シーン / モデル</span>
+            <div class="m3-grid-3" id="scene-presets">
+              <button data-scene="city" type="button" class="scene-btn m3-chip is-active">都市・建築</button>
+              <button data-scene="product" type="button" class="scene-btn m3-chip">プロダクト</button>
+              <button data-scene="sculpture" type="button" class="scene-btn m3-chip">ジオメトリ</button>
+            </div>
+            <p class="m3-helper">
+              任意の <code>.glb</code> / <code>.obj</code> を左キャンバスへドロップすると自動で中央配置・スケール調整されます。
+            </p>
+          </div>
+
+          <hr class="m3-divider" />
+
+          <div class="m3-section">
+            <span class="m3-label">汎用カメラワーク（自動スケール）</span>
+            <div class="m3-grid-2" id="cam-presets">
+              <button data-cam="orbit" type="button" class="cam-btn m3-chip m3-chip-left is-active">360° オービット</button>
+              <button data-cam="dollyIn" type="button" class="cam-btn m3-chip m3-chip-left">ドリーイン</button>
+              <button data-cam="lowTilt" type="button" class="cam-btn m3-chip m3-chip-left">ローアングル上昇</button>
+              <button data-cam="crane" type="button" class="cam-btn m3-chip m3-chip-left">クレーン俯瞰</button>
+              <button data-cam="track" type="button" class="cam-btn m3-chip m3-chip-left">横トラッキング</button>
+              <button data-cam="custom" type="button" class="cam-btn m3-chip m3-chip-left">カスタム KF 再生</button>
+            </div>
+          </div>
+
+          <!-- Custom Keyframes -->
+          <div class="m3-card">
+            <div class="m3-section-header">
+              <span class="m3-label" style="color:var(--md-on-surface)">カスタム・キーフレーム</span>
+              <div style="display:flex; gap:6px;">
+                <button id="btn-add-kf" type="button" class="m3-btn m3-btn-tonal m3-btn-sm">+ 現在視点を追加</button>
+                <button id="btn-clear-kf" type="button" class="m3-btn m3-btn-outlined m3-btn-sm">クリア</button>
+              </div>
+            </div>
+            <div id="kf-list" style="display:flex; flex-direction:column; gap:6px;">
+              <p class="m3-helper">ドラッグで好きな視点へ移動し、2点以上登録すると独自カメラワークを補間再生できます。</p>
+            </div>
+          </div>
+
+          <hr class="m3-divider" />
+
+          <!-- Lighting Mood -->
+          <div class="m3-section">
+            <span class="m3-label">ライティング環境</span>
+            <div class="m3-grid-4" id="light-presets">
+              <button data-light="nightNeon" type="button" class="light-btn m3-chip m3-chip-left is-active">
+                <span class="light-swatch" style="background:linear-gradient(135deg,#0f172a,#38bdf8)"></span>夜景ネオン
+              </button>
+              <button data-light="studio" type="button" class="light-btn m3-chip m3-chip-left">
+                <span class="light-swatch" style="background:linear-gradient(135deg,#475569,#f8fafc)"></span>スタジオ
+              </button>
+              <button data-light="sunset" type="button" class="light-btn m3-chip m3-chip-left">
+                <span class="light-swatch" style="background:linear-gradient(135deg,#7c2d12,#fb923c)"></span>夕暮れ
+              </button>
+              <button data-light="daylight" type="button" class="light-btn m3-chip m3-chip-left">
+                <span class="light-swatch" style="background:linear-gradient(135deg,#60a5fa,#fef3c7)"></span>デイライト
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: Multi-Modal References -->
+        <div id="tab-media" class="tab-pane m3-pane hidden">
+          <div class="m3-card">
+            <div class="m3-section-header">
+              <span class="m3-label" style="color:var(--md-on-surface)">参照画像 (&lt;Picture 1..9&gt;)</span>
+              <span class="m3-label">外観・スタイル固定</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="btn-snap-2" type="button" class="m3-btn m3-btn-tonal m3-btn-sm" style="flex:1">3D画面をキャプチャ</button>
+              <label class="m3-btn m3-btn-outlined m3-btn-sm">
+                画像追加
+                <input id="inp-ref-img" type="file" accept="image/*" multiple class="hidden" />
+              </label>
+            </div>
+            <div id="list-imgs" class="m3-grid-3"></div>
+          </div>
+
+          <div class="m3-card">
+            <div class="m3-section-header">
+              <span class="m3-label" style="color:var(--md-on-surface)">参照動画 (&lt;Video 1..3&gt;)</span>
+              <span class="m3-label">カメラ・動き継承</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="btn-rec-2" type="button" class="m3-btn m3-btn-tonal m3-btn-sm" style="flex:1">3Dカメラを5秒SD録画</button>
+              <label class="m3-btn m3-btn-outlined m3-btn-sm">
+                動画追加
+                <input id="inp-ref-vid" type="file" accept="video/*" multiple class="hidden" />
+              </label>
+            </div>
+            <div id="list-vids" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+
+          <div class="m3-card">
+            <div class="m3-section-header">
+              <span class="m3-label" style="color:var(--md-on-surface)">参照音声 (&lt;Audio 1..3&gt;)</span>
+              <label class="m3-btn m3-btn-outlined m3-btn-sm">
+                音声追加
+                <input id="inp-ref-aud" type="file" accept="audio/*" multiple class="hidden" />
+              </label>
+            </div>
+            <div id="list-auds" style="display:flex; flex-direction:column; gap:6px;"></div>
+          </div>
+        </div>
+
+        <!-- TAB 3: MiniMax H3 Generation -->
+        <div id="tab-gen" class="tab-pane m3-pane hidden">
+          <div class="m3-card">
+            <div class="m3-section-header">
+              <span class="m3-label" style="color:var(--md-on-surface)">Colab L4 接続</span>
+              <span id="gpu-info" class="m3-label">未接続</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <input id="inp-api-url" type="text" placeholder="空欄=同一オリジン / Colab プロキシURL" class="m3-input" style="flex:1; min-width:0;" />
+              <button id="btn-ping" type="button" class="m3-btn m3-btn-tonal m3-btn-sm">接続</button>
+            </div>
+          </div>
+
+          <div class="m3-card">
+            <span class="m3-label" style="color:var(--md-on-surface)">生成モード &amp; SD パラメータ</span>
+            <div class="m3-grid-3" id="h3-modes">
+              <button data-h3mode="ref2va" type="button" class="h3m-btn m3-chip is-active">Ref2VA</button>
+              <button data-h3mode="fl2va" type="button" class="h3m-btn m3-chip">FL2VA</button>
+              <button data-h3mode="t2va" type="button" class="h3m-btn m3-chip">T2VA</button>
+            </div>
+
+            <div class="m3-grid-2">
+              <label class="m3-field-group">
+                <span class="m3-label">SD解像度 (16:9)</span>
+                <select id="sel-res" class="m3-select">
+                  <option value="832x480" selected>832 × 480 (標準SD)</option>
+                  <option value="640x360">640 × 360 (高速SD)</option>
+                </select>
+              </label>
+              <label class="m3-field-group">
+                <span class="m3-label">フレーム数 (24fps)</span>
+                <select id="sel-frames" class="m3-select">
+                  <option value="124" selected>124f (約5.17秒)</option>
+                  <option value="107">107f (約4.46秒)</option>
+                  <option value="141">141f (約5.88秒)</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="m3-grid-2">
+              <label class="m3-field-group">
+                <span class="m3-label">ステップ (Turbo)</span>
+                <select id="sel-steps" class="m3-select">
+                  <option value="8" selected>8 steps (推奨)</option>
+                  <option value="4">4 steps (最速)</option>
+                  <option value="20">20 steps (標準)</option>
+                </select>
+              </label>
+              <label class="m3-field-group">
+                <span class="m3-label">スタイル</span>
+                <select id="sel-tpl" class="m3-select">
+                  <option value="cinema">映画実写 (35mm)</option>
+                  <option value="archviz">建築ビジュアライズ</option>
+                  <option value="product">プロダクトCM</option>
+                  <option value="anime">シネマティックアニメ</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="m3-field-group">
+              <div class="m3-section-header">
+                <span class="m3-label">プロンプト（映像 + ステレオ音声）</span>
+                <button id="btn-build-prompt" type="button" class="m3-link-btn">参照タグ自動生成</button>
+              </div>
+              <textarea id="txt-prompt" rows="4" class="m3-textarea"></textarea>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <button id="btn-generate" type="button" class="m3-btn m3-btn-filled m3-btn-lg">
+              <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              <span>MiniMax H3 (SD) で動画＋音声を生成</span>
+            </button>
+
+            <div id="prog-box" class="m3-card hidden">
+              <div class="m3-section-header">
+                <span id="prog-msg" class="m3-label" style="color:var(--md-on-surface)">待機中...</span>
+                <span id="prog-pct" class="m3-label mono">0%</span>
+              </div>
+              <div class="m3-progress-track">
+                <div id="prog-bar" class="m3-progress-fill" style="width:0%"></div>
+              </div>
+            </div>
+
+            <div id="out-box" class="m3-card hidden"></div>
+
+            <div class="m3-grid-2">
+              <button id="btn-export-cfg" type="button" class="m3-btn m3-btn-outlined m3-btn-sm">設定 JSON 保存</button>
+              <button id="btn-shutdown" type="button" class="m3-btn m3-btn-danger m3-btn-sm">L4 ランタイム終了</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+  (() => {
+    // =========================================================================
+    // 1. Minimal Math & Universal WebGL2 PBR-lite Renderer (.glb / .obj + Presets)
+    // =========================================================================
+    const canvas = document.getElementById('glcanvas');
+    const gl = canvas.getContext('webgl2', { antialias: true, preserveDrawingBuffer: true });
+    if (!gl) { canvas.parentElement.innerHTML = '<div class="p-6 text-white">WebGL2 非対応</div>'; return; }
+
+    const M4 = {
+      mul(a,b){ const o=new Float32Array(16); for(let c=0;c<4;c++) for(let r=0;r<4;r++) o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3]; return o; },
+      persp(fov,asp,n,f){ const t=1/Math.tan(fov/2), nf=1/(n-f); return new Float32Array([t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)*nf,-1, 0,0,2*f*n*nf,0]); },
+      lookAt(e,t,u){
+        let zx=e[0]-t[0],zy=e[1]-t[1],zz=e[2]-t[2], zl=Math.hypot(zx,zy,zz)||1; zx/=zl;zy/=zl;zz/=zl;
+        let xx=u[1]*zz-u[2]*zy,xy=u[2]*zx-u[0]*zz,xz=u[0]*zy-u[1]*zx, xl=Math.hypot(xx,xy,xz)||1; xx/=xl;xy/=xl;xz/=xl;
+        let yx=zy*xz-zz*xy,yy=zz*xx-zx*xz,yz=zx*xy-zy*xx;
+        return new Float32Array([xx,yx,zx,0, xy,yy,zy,0, xz,yz,zz,0, -(xx*e[0]+xy*e[1]+xz*e[2]),-(yx*e[0]+yy*e[1]+yz*e[2]),-(zx*e[0]+zy*e[1]+zz*e[2]),1]);
+      },
+      ident: () => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]),
+    };
+
+    const compile = (type, src) => { const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+    const prog = (() => {
+      const p = gl.createProgram();
+      gl.attachShader(p, compile(gl.VERTEX_SHADER, `#version 300 es
+        layout(location=0) in vec3 aPos;
+        layout(location=1) in vec3 aNorm;
+        layout(location=2) in vec3 aCol;
+        uniform mat4 uVP;
+        out vec3 vN, vW, vC;
+        void main(){ vW=aPos; vN=aNorm; vC=aCol; gl_Position=uVP*vec4(aPos,1.0); }
+      `));
+      gl.attachShader(p, compile(gl.FRAGMENT_SHADER, `#version 300 es
+        precision highp float;
+        in vec3 vN, vW, vC;
+        out vec4 fragColor;
+        uniform vec3 uCamPos, uKeyDir, uKeyCol, uFillCol, uAmb, uSkyCol;
+        void main(){
+          vec3 n = normalize(vN);
+          vec3 v = normalize(uCamPos - vW);
+          float ndl = max(dot(n, normalize(uKeyDir)), 0.0);
+          float ndf = max(dot(n, normalize(vec3(-uKeyDir.x, 0.4, -uKeyDir.z))), 0.0);
+          vec3 h = normalize(normalize(uKeyDir) + v);
+          float spec = pow(max(dot(n, h), 0.0), 28.0) * 0.45;
+          float rim = pow(1.0 - max(dot(n, v), 0.0), 3.0) * 0.25;
+          // Ground grid glow for y ~ 0
+          vec3 base = vC;
+          if (abs(vW.y) < 0.03) {
+            vec2 g = abs(fract(vW.xz * 0.5 - 0.5) - 0.5) / fwidth(vW.xz * 0.5);
+            float line = 1.0 - min(min(g.x, g.y), 1.0);
+            base = mix(base, base + vec3(0.18, 0.24, 0.34), line * 0.55);
+          }
+          vec3 col = base * (uAmb + uKeyCol * ndl + uFillCol * ndf * 0.45) + uKeyCol * spec + uFillCol * rim;
+          float fog = 1.0 - exp(-pow(length(uCamPos - vW) * 0.014, 2.0));
+          col = mix(col, uSkyCol, clamp(fog, 0.0, 0.88));
+          col = (col*(2.51*col+0.03))/(col*(2.43*col+0.59)+0.14);
+          fragColor = vec4(pow(clamp(col,0.0,1.0), vec3(1.0/2.2)), 1.0);
+        }
+      `));
+      gl.linkProgram(p);
+      return p;
+    })();
+
+    const U = {
+      vp: gl.getUniformLocation(prog, 'uVP'),
+      cam: gl.getUniformLocation(prog, 'uCamPos'),
+      kDir: gl.getUniformLocation(prog, 'uKeyDir'),
+      kCol: gl.getUniformLocation(prog, 'uKeyCol'),
+      fCol: gl.getUniformLocation(prog, 'uFillCol'),
+      amb: gl.getUniformLocation(prog, 'uAmb'),
+      sky: gl.getUniformLocation(prog, 'uSkyCol'),
+    };
+
+    // Mesh buffer builder
+    let sceneVAO = null, sceneVerts = 0, sceneRadius = 10, sceneCenter = [0, 2.5, 0];
+
+    function uploadMesh(positions, normals, colors) {
+      if (sceneVAO) gl.deleteVertexArray(sceneVAO);
+      // Compute bounding box & auto-normalize to radius ~8 sitting on y=0
+      let minX=1e9,minY=1e9,minZ=1e9,maxX=-1e9,maxY=-1e9,maxZ=-1e9;
+      for (let i=0;i<positions.length;i+=3) {
+        minX=Math.min(minX,positions[i]); maxX=Math.max(maxX,positions[i]);
+        minY=Math.min(minY,positions[i+1]); maxY=Math.max(maxY,positions[i+1]);
+        minZ=Math.min(minZ,positions[i+2]); maxZ=Math.max(maxZ,positions[i+2]);
+      }
+      const cx=(minX+maxX)/2, cz=(minZ+maxZ)/2, span=Math.max(maxX-minX, maxY-minY, maxZ-minZ, 0.001);
+      const scale = 12.0 / span;
+      const normP = new Float32Array(positions.length);
+      for (let i=0;i<positions.length;i+=3) {
+        normP[i]   = (positions[i] - cx) * scale;
+        normP[i+1] = (positions[i+1] - minY) * scale;
+        normP[i+2] = (positions[i+2] - cz) * scale;
+      }
+      // Add studio floor plane
+      const floorSize = 48;
+      const fp = [-floorSize,0,-floorSize, floorSize,0,-floorSize, floorSize,0,floorSize, -floorSize,0,-floorSize, floorSize,0,floorSize, -floorSize,0,floorSize];
+      const fn = [0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0];
+      const fc = [0.08,0.1,0.14, 0.08,0.1,0.14, 0.08,0.1,0.14, 0.08,0.1,0.14, 0.08,0.1,0.14, 0.08,0.1,0.14];
+
+      const allP = new Float32Array(normP.length + fp.length); allP.set(normP); allP.set(fp, normP.length);
+      const allN = new Float32Array(normals.length + fn.length); allN.set(normals); allN.set(fn, normals.length);
+      const allC = new Float32Array(colors.length + fc.length); allC.set(colors); allC.set(fc, colors.length);
+
+      sceneVAO = gl.createVertexArray();
+      gl.bindVertexArray(sceneVAO);
+      const bindAttr = (loc, arr) => {
+        const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
+      };
+      bindAttr(0, allP); bindAttr(1, allN); bindAttr(2, allC);
+      gl.bindVertexArray(null);
+
+      sceneVerts = allP.length / 3;
+      sceneCenter = [0, ((maxY - minY) * scale) * 0.45, 0];
+      sceneRadius = 11.5;
+    }
+
+    function pushBox(P, N, C, cx, cy, cz, sx, sy, sz, col) {
+      const hx=sx/2, hy=sy/2, hz=sz/2;
+      const faces = [
+        [[0,0,1], [[-hx,-hy,hz],[hx,-hy,hz],[hx,hy,hz],[-hx,hy,hz]]],
+        [[0,0,-1], [[hx,-hy,-hz],[-hx,-hy,-hz],[-hx,hy,-hz],[hx,hy,-hz]]],
+        [[0,1,0], [[-hx,hy,hz],[hx,hy,hz],[hx,hy,-hz],[-hx,hy,-hz]]],
+        [[0,-1,0], [[-hx,-hy,-hz],[hx,-hy,-hz],[hx,-hy,hz],[-hx,-hy,hz]]],
+        [[1,0,0], [[hx,-hy,hz],[hx,-hy,-hz],[hx,hy,-hz],[hx,hy,hz]]],
+        [[-1,0,0], [[-hx,-hy,-hz],[-hx,-hy,hz],[-hx,hy,hz],[-hx,hy,-hz]]],
+      ];
+      for (const [n, v] of faces) {
+        for (const i of [0,1,2, 0,2,3]) {
+          P.push(cx+v[i][0], cy+v[i][1], cz+v[i][2]);
+          N.push(n[0], n[1], n[2]);
+          C.push(col[0], col[1], col[2]);
+        }
+      }
+    }
+
+    function loadPresetScene(kind) {
+      const P=[], N=[], C=[];
+      if (kind === 'city') {
+        // Universal Urban Architecture Block
+        pushBox(P,N,C, 0, 3.8, 0, 4.2, 7.6, 4.2, [0.22,0.28,0.38]);
+        pushBox(P,N,C, 0, 4.4, 2.15, 2.8, 3.2, 0.12, [0.98,0.68,0.22]); // Neon Hero Sign
+        pushBox(P,N,C, 0, 8.2, 1.9, 3.0, 1.1, 0.2, [0.92,0.32,0.18]);
+        pushBox(P,N,C, -5.2, 2.8, -1.5, 3.4, 5.6, 3.8, [0.18,0.23,0.32]);
+        pushBox(P,N,C, 5.4, 5.0, -2.2, 3.8, 10.0, 3.8, [0.2,0.26,0.35]);
+        pushBox(P,N,C, 5.4, 3.2, -0.25, 2.6, 1.4, 0.12, [0.22,0.78,0.98]);
+        pushBox(P,N,C, -4.8, 1.8, 4.2, 3.0, 3.6, 3.0, [0.25,0.3,0.38]);
+        pushBox(P,N,C, 4.5, 2.2, 4.5, 2.8, 4.4, 2.8, [0.24,0.28,0.36]);
+        document.getElementById('scene-badge').textContent = 'Scene: 都市・建築ブロック';
+      } else if (kind === 'product') {
+        // Product Showcase Pedestal & Sleek Device
+        pushBox(P,N,C, 0, 0.4, 0, 6.4, 0.8, 6.4, [0.15,0.17,0.22]);
+        pushBox(P,N,C, 0, 0.85, 0, 5.6, 0.1, 5.6, [0.95,0.68,0.22]);
+        pushBox(P,N,C, 0, 2.6, 0, 2.6, 3.4, 1.2, [0.85,0.88,0.94]);
+        pushBox(P,N,C, 0, 2.8, 0.64, 2.1, 2.6, 0.08, [0.12,0.68,0.95]);
+        pushBox(P,N,C, -2.6, 1.4, 1.4, 1.1, 1.2, 1.1, [0.88,0.28,0.22]);
+        pushBox(P,N,C, 2.5, 1.6, -1.2, 1.3, 1.6, 1.3, [0.24,0.78,0.58]);
+        document.getElementById('scene-badge').textContent = 'Scene: プロダクト・ステージ';
+      } else {
+        // Modern Sculpture / Geometry Composition
+        pushBox(P,N,C, 0, 2.5, 0, 2.2, 5.0, 2.2, [0.92,0.72,0.26]);
+        pushBox(P,N,C, 2.4, 1.5, 1.8, 2.4, 3.0, 2.4, [0.24,0.72,0.96]);
+        pushBox(P,N,C, -2.5, 2.0, -1.4, 2.0, 4.0, 2.0, [0.92,0.32,0.36]);
+        pushBox(P,N,C, -1.8, 0.9, 2.4, 1.8, 1.8, 1.8, [0.22,0.82,0.62]);
+        document.getElementById('scene-badge').textContent = 'Scene: ジオメトリ・ギャラリー';
+      }
+      uploadMesh(new Float32Array(P), new Float32Array(N), new Float32Array(C));
+    }
+
+    // Built-in Lightweight .OBJ & Binary .GLB Parser (so ANY 3D model works zero-dependency!)
+    function parseOBJ(text) {
+      const verts=[], P=[], N=[], C=[];
+      for (const raw of text.split(/\r?\n/)) {
+        const line = raw.trim();
+        if (line.startsWith('v ')) {
+          const p = line.split(/\s+/);
+          verts.push([+p[1], +p[2], +p[3]]);
+        } else if (line.startsWith('f ')) {
+          const idx = line.split(/\s+/).slice(1).map(s => {
+            const i = parseInt(s.split('/')[0], 10);
+            return i < 0 ? verts.length + i : i - 1;
+          });
+          for (let k=1; k<idx.length-1; k++) {
+            const a=verts[idx[0]], b=verts[idx[k]], c=verts[idx[k+1]];
+            if (!a||!b||!c) continue;
+            const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2], vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
+            let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx, nl=Math.hypot(nx,ny,nz)||1;
+            nx/=nl; ny/=nl; nz/=nl;
+            for (const v of [a,b,c]) { P.push(v[0],v[1],v[2]); N.push(nx,ny,nz); C.push(0.76,0.8,0.88); }
+          }
+        }
+      }
+      if (!P.length) throw new Error('OBJに面データが見つかりません');
+      uploadMesh(new Float32Array(P), new Float32Array(N), new Float32Array(C));
+    }
+
+    function parseGLB(buf) {
+      const dv = new DataView(buf);
+      if (dv.getUint32(0, true) !== 0x46546C67) throw new Error('有効なバイナリGLBファイルではありません');
+      const jsonLen = dv.getUint32(12, true);
+      const gltf = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, jsonLen)));
+      const binOff = 20 + jsonLen + 8;
+      const getAcc = (accIdx) => {
+        const acc = gltf.accessors[accIdx];
+        const bv = gltf.bufferViews[acc.bufferView];
+        const byteOff = binOff + (bv.byteOffset || 0) + (acc.byteOffset || 0);
+        const comps = acc.type === 'VEC3' ? 3 : (acc.type === 'VEC2' ? 2 : 1);
+        const count = acc.count * comps;
+        if (acc.componentType === 5126) return new Float32Array(buf, byteOff, count);
+        if (acc.componentType === 5123) return new Uint16Array(buf, byteOff, count);
+        if (acc.componentType === 5125) return new Uint32Array(buf, byteOff, count);
+        return new Uint8Array(buf, byteOff, count);
+      };
+      const P=[], N=[], C=[];
+      for (const mesh of (gltf.meshes || [])) {
+        for (const prim of (mesh.primitives || [])) {
+          if (prim.attributes?.POSITION === undefined) continue;
+          const pos = getAcc(prim.attributes.POSITION);
+          const idx = prim.indices !== undefined ? getAcc(prim.indices) : null;
+          const mat = prim.material !== undefined ? gltf.materials?.[prim.material] : null;
+          const bc = mat?.pbrMetallicRoughness?.baseColorFactor || [0.76, 0.8, 0.88, 1];
+          const triCount = idx ? idx.length : pos.length / 3;
+          for (let t=0; t+2<triCount; t+=3) {
+            const i0 = idx ? idx[t] : t, i1 = idx ? idx[t+1] : t+1, i2 = idx ? idx[t+2] : t+2;
+            const a=[pos[i0*3],pos[i0*3+1],pos[i0*3+2]], b=[pos[i1*3],pos[i1*3+1],pos[i1*3+2]], c=[pos[i2*3],pos[i2*3+1],pos[i2*3+2]];
+            const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2], vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
+            let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx, nl=Math.hypot(nx,ny,nz)||1;
+            nx/=nl; ny/=nl; nz/=nl;
+            for (const v of [a,b,c]) { P.push(v[0],v[1],v[2]); N.push(nx,ny,nz); C.push(bc[0],bc[1],bc[2]); }
+          }
+        }
+      }
+      if (!P.length) throw new Error('GLB内にジオメトリが見つかりません');
+      uploadMesh(new Float32Array(P), new Float32Array(N), new Float32Array(C));
+    }
+
+    async function handle3DFile(file) {
+      try {
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext === 'obj') parseOBJ(await file.text());
+        else if (ext === 'glb') parseGLB(await file.arrayBuffer());
+        else throw new Error('.glb または .obj を指定してください');
+        document.getElementById('scene-badge').textContent = `3D: ${file.name}`;
+      } catch (e) {
+        alert('3Dモデル読み込みエラー: ' + e.message);
+      }
+    }
+
+    loadPresetScene('city');
+
+    // =========================================================================
+    // 2. Universal Camera Sequencer (Auto-Scaled Presets + Custom Keyframes)
+    // =========================================================================
+    const LIGHTS = {
+      nightNeon: { sky:[0.03,0.05,0.11], amb:[0.22,0.26,0.36], kDir:[0.5,0.8,0.6], kCol:[1.15,0.72,0.32], fCol:[0.28,0.72,1.1] },
+      studio:    { sky:[0.12,0.14,0.18], amb:[0.42,0.44,0.48], kDir:[0.6,0.9,0.7], kCol:[1.05,1.02,0.98], fCol:[0.65,0.76,0.92] },
+      sunset:    { sky:[0.24,0.15,0.22], amb:[0.38,0.28,0.34], kDir:[-0.8,0.35,0.5], kCol:[1.25,0.62,0.34], fCol:[0.35,0.42,0.78] },
+      daylight:  { sky:[0.56,0.72,0.88], amb:[0.62,0.68,0.75], kDir:[0.5,0.95,0.4], kCol:[1.15,1.12,1.04], fCol:[0.65,0.8,0.98] },
+    };
+
+    let curLight = 'nightNeon', camMode = 'orbit', isPlaying = true, seqT = 0;
+    let manualCam = false, yaw = 0.6, pitch = 0.28, dist = 18.5, target = [...sceneCenter];
+    const customKFs = []; // [{ yaw, pitch, dist, target:[x,y,z] }]
+
+    const smooth = x => { const c=Math.max(0,Math.min(1,x)); return c*c*(3-2*c); };
+    const mix = (a,b,f) => a + (b-a)*f;
+    const mix3 = (a,b,f) => [mix(a[0],b[0],f), mix(a[1],b[1],f), mix(a[2],b[2],f)];
+
+    function evalCam(tSec) {
+      const u = ((tSec % 10) + 10) / 10 % 1;
+      const e = smooth(u);
+      const r = sceneRadius * 1.55;
+      const c = sceneCenter;
+
+      if (camMode === 'custom' && customKFs.length >= 2) {
+        const segs = customKFs.length - 1;
+        const scaled = e * segs;
+        const idx = Math.min(segs - 1, Math.floor(scaled));
+        const f = smooth(scaled - idx);
+        const a = customKFs[idx], b = customKFs[idx + 1];
+        const yw = mix(a.yaw, b.yaw, f), pt = mix(a.pitch, b.pitch, f), ds = mix(a.dist, b.dist, f);
+        const tg = mix3(a.target, b.target, f);
+        return {
+          pos: [tg[0]+Math.sin(yw)*Math.cos(pt)*ds, Math.max(0.5, tg[1]+Math.sin(pt)*ds), tg[2]+Math.cos(yw)*Math.cos(pt)*ds],
+          tgt: tg, lbl: `カスタム KF (${customKFs.length}点)`
+        };
+      }
+      if (camMode === 'dollyIn') {
+        const d = mix(r * 1.45, r * 0.65, e);
+        return { pos: [c[0]+d*0.25, c[1]+mix(1.2, 2.2, e), c[2]+d], tgt: [c[0], c[1]+0.6, c[2]], lbl: 'ドリーイン' };
+      }
+      if (camMode === 'lowTilt') {
+        return { pos: [c[0]-r*0.25, mix(0.8, c[1]+3.5, e), c[2]+mix(r*1.15, r*0.75, e)], tgt: [c[0], mix(c[1]-1.0, c[1]+3.2, e), c[2]], lbl: 'ローアングル上昇' };
+      }
+      if (camMode === 'crane') {
+        const a = mix(-0.4, 0.7, e);
+        return { pos: [c[0]+Math.sin(a)*r*1.1, mix(2.5, r*1.15, e), c[2]+Math.cos(a)*r*1.1], tgt: c, lbl: 'クレーン俯瞰' };
+      }
+      if (camMode === 'track') {
+        return { pos: [c[0]+mix(-r*0.95, r*0.95, e), c[1]+1.6, c[2]+r*0.95], tgt: [c[0]+mix(-1.5,1.5,e), c[1]+0.5, c[2]], lbl: '横トラッキング' };
+      }
+      // orbit
+      const ang = u * Math.PI * 2;
+      return { pos: [c[0]+Math.sin(ang)*r, c[1]+4.2, c[2]+Math.cos(ang)*r], tgt: c, lbl: '360° オービット' };
+    }
+
+    // Material 3 Snackbar Helper & Play/Pause SVG Icon Sync
+    let snackTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('m3-snackbar');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(snackTimer);
+      snackTimer = setTimeout(() => el.classList.remove('show'), 2600);
+    }
+
+    function updatePlayIcon() {
+      const ico = document.getElementById('ico-play');
+      if (!ico) return;
+      ico.innerHTML = isPlaying
+        ? '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'
+        : '<polygon points="7 4 20 12 7 20 7 4"/>';
+    }
+
+    // Light / Dark Theme Toggle (Google Material 3)
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const ico = document.getElementById('ico-theme');
+      if (ico) {
+        ico.innerHTML = theme === 'dark'
+          ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>'
+          : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+      }
+    }
+    if (document.documentElement.classList.contains('light')) setTheme('light');
+    window.addEventListener('themechange', () => setTheme(document.documentElement.classList.contains('light') ? 'light' : 'dark'));
+    document.getElementById('btn-theme').addEventListener('click', () => {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      setTheme(next);
+      showToast(next === 'light' ? 'ライトテーマに切り替えました' : 'ダークテーマに切り替えました');
+    });
+
+    function renderKFList() {
+      const el = document.getElementById('kf-list');
+      if (!customKFs.length) {
+        el.innerHTML = '<p class="m3-helper">ドラッグで好きな視点へ移動し、2点以上登録すると独自カメラワークを補間再生できます。</p>';
+        return;
+      }
+      el.innerHTML = customKFs.map((k, i) => `
+        <div class="m3-list-row">
+          <span class="mono">KF ${i+1} · dist ${k.dist.toFixed(1)}</span>
+          <button data-del-kf="${i}" type="button" class="m3-del-btn" aria-label="削除">×</button>
+        </div>
+      `).join('');
+      el.querySelectorAll('[data-del-kf]').forEach(b => b.addEventListener('click', () => {
+        customKFs.splice(Number(b.dataset.delKf), 1); renderKFList();
+      }));
+    }
+
+    function addKeyframe() {
+      if (!manualCam) {
+        const ev = evalCam(seqT);
+        target = [...ev.tgt];
+        const dx=ev.pos[0]-target[0], dy=ev.pos[1]-target[1], dz=ev.pos[2]-target[2];
+        dist=Math.hypot(dx,dy,dz); yaw=Math.atan2(dx,dz); pitch=Math.asin(Math.max(-0.95,Math.min(0.95,dy/dist)));
+      }
+      customKFs.push({ yaw, pitch, dist, target: [...target] });
+      renderKFList();
+      if (customKFs.length >= 2) {
+        camMode = 'custom'; manualCam = false; isPlaying = true;
+        updatePlayIcon();
+        toggleGroup('.cam-btn', document.querySelector('.cam-btn[data-cam="custom"]'));
+        showToast(`キーフレーム ${customKFs.length} 点を補間再生中`);
+      } else {
+        showToast(`キーフレーム ${customKFs.length} を追加しました`);
+      }
+    }
+    document.getElementById('btn-add-kf').addEventListener('click', addKeyframe);
+    document.getElementById('btn-add-kf-quick').addEventListener('click', addKeyframe);
+    document.getElementById('btn-clear-kf').addEventListener('click', () => { customKFs.length = 0; renderKFList(); showToast('キーフレームをクリアしました'); });
+
+    // Orbit Drag
+    let dragging=false, lx=0, ly=0;
+    const enterManual = () => {
+      if (manualCam) return;
+      const ev = evalCam(seqT); target=[...ev.tgt];
+      const dx=ev.pos[0]-target[0], dy=ev.pos[1]-target[1], dz=ev.pos[2]-target[2];
+      dist=Math.hypot(dx,dy,dz); yaw=Math.atan2(dx,dz); pitch=Math.asin(Math.max(-0.95,Math.min(0.95,dy/dist)));
+      manualCam=true; isPlaying=false; updatePlayIcon();
+    };
+    canvas.addEventListener('pointerdown', e => { dragging=true; lx=e.clientX; ly=e.clientY; enterManual(); canvas.setPointerCapture(e.pointerId); });
+    canvas.addEventListener('pointermove', e => { if(!dragging)return; yaw-=(e.clientX-lx)*0.006; pitch=Math.max(-0.25,Math.min(1.42,pitch+(e.clientY-ly)*0.006)); lx=e.clientX; ly=e.clientY; });
+    canvas.addEventListener('pointerup', () => dragging=false);
+    canvas.addEventListener('wheel', e => { e.preventDefault(); enterManual(); dist=Math.max(3,Math.min(60,dist*(1+e.deltaY*0.001))); }, {passive:false});
+
+    // =========================================================================
+    // 3. Universal Reference Media Store (<Picture 1..9>, <Video 1..3>, <Audio 1..3>)
+    // =========================================================================
+    const refImgs = [], refVids = [], refAuds = [];
+
+    function renderMediaLists() {
+      document.getElementById('media-count').textContent = String(refImgs.length + refVids.length + refAuds.length);
+      const iEl = document.getElementById('list-imgs');
+      iEl.innerHTML = refImgs.length ? refImgs.map((x,i) => `
+        <div class="m3-thumb-card">
+          <img src="${x.url}" alt="Picture ${i+1}" />
+          <div class="m3-thumb-meta"><span class="mono">&lt;Pic ${i+1}&gt;</span><button data-di="${i}" type="button" class="m3-del-btn" aria-label="削除">×</button></div>
+        </div>
+      `).join('') : '<div class="m3-empty" style="grid-column:span 3">未登録</div>';
+      iEl.querySelectorAll('[data-di]').forEach(b => b.addEventListener('click', () => { refImgs.splice(+b.dataset.di,1); renderMediaLists(); }));
+
+      const vEl = document.getElementById('list-vids');
+      vEl.innerHTML = refVids.length ? refVids.map((x,i) => `
+        <div class="m3-thumb-card" style="padding:8px; display:flex; flex-direction:column; gap:6px;">
+          <video src="${x.url}" controls muted playsinline style="width:100%; border-radius:8px; max-height:132px; background:#000;"></video>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:12px;">
+            <span class="mono" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">&lt;Video ${i+1}&gt; ${x.name}</span>
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+              <a href="${x.url}" download="${x.name}" class="m3-link-btn">保存</a>
+              <button data-dv="${i}" type="button" class="m3-del-btn" aria-label="削除">×</button>
+            </div>
+          </div>
+        </div>
+      `).join('') : '<div class="m3-empty">未登録（SD 5秒録画または MP4 追加）</div>';
+      vEl.querySelectorAll('[data-dv]').forEach(b => b.addEventListener('click', () => { URL.revokeObjectURL(refVids[+b.dataset.dv].url); refVids.splice(+b.dataset.dv,1); renderMediaLists(); }));
+
+      const aEl = document.getElementById('list-auds');
+      aEl.innerHTML = refAuds.length ? refAuds.map((x,i) => `
+        <div class="m3-list-row">
+          <span class="mono" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">&lt;Audio ${i+1}&gt; ${x.name}</span>
+          <button data-da="${i}" type="button" class="m3-del-btn" aria-label="削除">×</button>
+        </div>
+      `).join('') : '<div class="m3-empty">任意（声・BGM・環境音リファレンス）</div>';
+      aEl.querySelectorAll('[data-da]').forEach(b => b.addEventListener('click', () => { refAuds.splice(+b.dataset.da,1); renderMediaLists(); }));
+    }
+    renderMediaLists();
+
+    // Tabs
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanes = { stage: document.getElementById('tab-stage'), media: document.getElementById('tab-media'), gen: document.getElementById('tab-gen') };
+    function switchTab(k) {
+      tabBtns.forEach(b => b.classList.toggle('is-active', b.dataset.tab === k));
+      Object.entries(tabPanes).forEach(([id, el]) => el.classList.toggle('hidden', id !== k));
+    }
+    tabBtns.forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    document.getElementById('backend-pill').addEventListener('click', () => switchTab('gen'));
+
+    // Capture & 5s SD Recording
+    function snapImage() {
+      if (refImgs.length >= 9) { showToast('参照画像は最大 9 枚までです'); return; }
+      renderFrame(0);
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        refImgs.push({ name: `capture_${refImgs.length+1}.png`, url: canvas.toDataURL('image/png'), blob });
+        renderMediaLists(); switchTab('media');
+        showToast(`<Picture ${refImgs.length}> をキャプチャしました`);
+      }, 'image/png');
+    }
+    document.getElementById('btn-snap').addEventListener('click', snapImage);
+    document.getElementById('btn-snap-2').addEventListener('click', snapImage);
+
+    let recording = false;
+    function recVideo() {
+      if (recording || refVids.length >= 3) { if (refVids.length >= 3) showToast('参照動画は最大 3 本までです'); return; }
+      if (!canvas.captureStream || typeof MediaRecorder === 'undefined') { showToast('このブラウザでは録画非対応です'); return; }
+      recording = true; manualCam = false; isPlaying = true;
+      updatePlayIcon();
+      const stream = canvas.captureStream(24);
+      const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+      const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 3200000 });
+      const chunks = [];
+      mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      mr.onstop = () => {
+        recording = false; document.getElementById('rec-badge').classList.add('hidden');
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        refVids.push({ name: `camera_sd24fps_${refVids.length+1}.webm`, url: URL.createObjectURL(blob), blob });
+        renderMediaLists(); switchTab('media');
+        showToast(`<Video ${refVids.length}> の 5 秒録画が完了しました`);
+      };
+      const badge = document.getElementById('rec-badge'); badge.classList.remove('hidden');
+      const t0 = performance.now();
+      const iv = setInterval(() => {
+        const s = Math.min(5, (performance.now()-t0)/1000);
+        badge.textContent = `● REC ${s.toFixed(1)}s / 5.0s`;
+        if (s >= 5) { clearInterval(iv); if (mr.state === 'recording') mr.stop(); }
+      }, 100);
+      mr.start();
+    }
+    document.getElementById('btn-rec').addEventListener('click', recVideo);
+    document.getElementById('btn-rec-2').addEventListener('click', recVideo);
+
+    // File Inputs & Drag-and-Drop
+    document.getElementById('inp-3d-file').addEventListener('change', e => { if (e.target.files?.[0]) { handle3DFile(e.target.files[0]); showToast(`3Dモデルを読み込みました: ${e.target.files[0].name}`); } e.target.value=''; });
+    document.getElementById('inp-ref-img').addEventListener('change', e => {
+      for (const f of Array.from(e.target.files||[])) { if (refImgs.length>=9) break; refImgs.push({ name:f.name, url:URL.createObjectURL(f), blob:f }); }
+      renderMediaLists(); e.target.value='';
+    });
+    document.getElementById('inp-ref-vid').addEventListener('change', e => {
+      for (const f of Array.from(e.target.files||[])) { if (refVids.length>=3) break; refVids.push({ name:f.name, url:URL.createObjectURL(f), blob:f }); }
+      renderMediaLists(); e.target.value='';
+    });
+    document.getElementById('inp-ref-aud').addEventListener('change', e => {
+      for (const f of Array.from(e.target.files||[])) { if (refAuds.length>=3) break; refAuds.push({ name:f.name, blob:f }); }
+      renderMediaLists(); e.target.value='';
+    });
+
+    const dz = document.getElementById('drop-zone'), ov = document.getElementById('drop-overlay');
+    dz.addEventListener('dragover', e => { e.preventDefault(); ov.classList.remove('hidden'); });
+    dz.addEventListener('dragleave', () => ov.classList.add('hidden'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); ov.classList.add('hidden');
+      for (const f of Array.from(e.dataTransfer.files || [])) {
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (ext === 'glb' || ext === 'obj') { handle3DFile(f); showToast(`3Dモデルを読み込みました: ${f.name}`); }
+        else if (f.type.startsWith('image/') && refImgs.length < 9) { refImgs.push({ name:f.name, url:URL.createObjectURL(f), blob:f }); renderMediaLists(); showToast(`参照画像を追加: ${f.name}`); }
+        else if (f.type.startsWith('video/') && refVids.length < 3) { refVids.push({ name:f.name, url:URL.createObjectURL(f), blob:f }); renderMediaLists(); showToast(`参照動画を追加: ${f.name}`); }
+        else if (f.type.startsWith('audio/') && refAuds.length < 3) { refAuds.push({ name:f.name, blob:f }); renderMediaLists(); showToast(`参照音声を追加: ${f.name}`); }
+      }
+    });
+
+    // Preset Chips
+    const toggleGroup = (sel, activeBtn) => {
+      document.querySelectorAll(sel).forEach(b => b.classList.toggle('is-active', b === activeBtn));
+    };
+    document.querySelectorAll('.scene-btn').forEach(b => b.addEventListener('click', () => { toggleGroup('.scene-btn', b); loadPresetScene(b.dataset.scene); }));
+    document.querySelectorAll('.cam-btn').forEach(b => b.addEventListener('click', () => { toggleGroup('.cam-btn', b); camMode=b.dataset.cam; manualCam=false; isPlaying=true; updatePlayIcon(); }));
+    document.querySelectorAll('.light-btn').forEach(b => b.addEventListener('click', () => { toggleGroup('.light-btn', b); curLight=b.dataset.light; }));
+
+    document.getElementById('btn-play').addEventListener('click', () => { isPlaying=!isPlaying; updatePlayIcon(); });
+    const tlSlider = document.getElementById('tl-slider');
+    tlSlider.addEventListener('input', e => { seqT = parseFloat(e.target.value); manualCam = false; });
+
+    // =========================================================================
+    // 4. Universal MiniMax H3 Prompt Builder & Colab L4 API Bridge
+    // =========================================================================
+    let h3Mode = 'ref2va', backendBase = '', backendOK = false;
+    document.querySelectorAll('.h3m-btn').forEach(b => b.addEventListener('click', () => {
+      h3Mode = b.dataset.h3mode;
+      toggleGroup('.h3m-btn', b);
+    }));
+
+    const TEMPLATES = {
+      cinema: 'Photorealistic 35mm cinema footage with natural lighting, rich textures, atmospheric depth, and shallow depth of field. Stereo audio: realistic ambient environment and subtle cinematic soundscape.',
+      archviz: 'Architectural visualization film, photorealistic materials, physically accurate reflections and global illumination, smooth architectural camera glide. Stereo audio: quiet urban ambience and soft breeze.',
+      product: 'High-end commercial product film, studio rim lighting, crisp metallic and glass reflections, sleek smooth camera reveal. Stereo audio: subtle modern electronic pulse and crisp foley.',
+      anime: 'High-budget theatrical Japanese anime cinematography, expressive lighting, detailed painterly backgrounds, fluid 24fps motion. Stereo audio: atmospheric wind and emotional orchestral undertone.',
+    };
+
+    function buildPrompt() {
+      const style = TEMPLATES[document.getElementById('sel-tpl').value] || TEMPLATES.cinema;
+      const lines = [];
+      if (h3Mode === 'ref2va') {
+        if (refVids.length) lines.push(`Follow the exact camera motion, pacing, and layout from ${refVids.map((_,i)=>`<Video ${i+1}>`).join(', ')}.`);
+        if (refImgs.length) lines.push(`Preserve the subject appearance, architectural details, and visual identity shown in ${refImgs.map((_,i)=>`<Picture ${i+1}>`).join(', ')}.`);
+        if (refAuds.length) lines.push(`Match the audio style and voice/timbre from ${refAuds.map((_,i)=>`<Audio ${i+1}>`).join(', ')}.`);
+      }
+      lines.push(style);
+      document.getElementById('txt-prompt').value = lines.join('\n');
+    }
+    document.getElementById('btn-build-prompt').addEventListener('click', () => { buildPrompt(); showToast('参照タグをプロンプトへ反映しました'); });
+    document.getElementById('sel-tpl').addEventListener('change', buildPrompt);
+    buildPrompt();
+
+    async function testBackend() {
+      backendBase = document.getElementById('inp-api-url').value.trim().replace(/\/+$/, '');
+      try {
+        const res = await fetch(`${backendBase}/api/health`);
+        if (!res.ok) throw new Error();
+        const d = await res.json();
+        backendOK = true;
+        document.getElementById('backend-dot').className = 'm3-dot m3-dot-ok';
+        document.getElementById('backend-label').textContent = `L4 接続済 (${d.gpu || 'GPU'})`;
+        document.getElementById('gpu-info').textContent = `${d.gpu || 'GPU'} · ComfyUI ${d.comfy_ready ? 'OK' : '起動中'}`;
+      } catch {
+        backendOK = false;
+        document.getElementById('backend-dot').className = 'm3-dot m3-dot-warn';
+        document.getElementById('backend-label').textContent = 'ローカルモード';
+        document.getElementById('gpu-info').textContent = '未接続 (ローカル)';
+      }
+    }
+    document.getElementById('btn-ping').addEventListener('click', testBackend);
+    if (location.protocol.startsWith('http')) testBackend();
+
+    function getConfig() {
+      const [w, h] = document.getElementById('sel-res').value.split('x').map(Number);
+      return {
+        mode: h3Mode,
+        resolution: { width: w, height: h },
+        frames: Number(document.getElementById('sel-frames').value),
+        fps: 24,
+        steps: Number(document.getElementById('sel-steps').value),
+        cfg: 1.0,
+        prompt: document.getElementById('txt-prompt').value,
+        references: {
+          images: refImgs.map((x,i) => ({ tag:`<Picture ${i+1}>`, name:x.name })),
+          videos: refVids.map((x,i) => ({ tag:`<Video ${i+1}>`, name:x.name })),
+          audios: refAuds.map((x,i) => ({ tag:`<Audio ${i+1}>`, name:x.name })),
+        },
+      };
+    }
+
+    document.getElementById('btn-export-cfg').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(getConfig(), null, 2)], { type: 'application/json' }));
+      a.download = `minimax_h3_${h3Mode}_sd_config.json`;
+      a.click();
+    });
+
+    document.getElementById('btn-generate').addEventListener('click', async () => {
+      const pBox=document.getElementById('prog-box'), pMsg=document.getElementById('prog-msg'), pPct=document.getElementById('prog-pct'), pBar=document.getElementById('prog-bar'), oBox=document.getElementById('out-box');
+      if (!backendOK) {
+        pBox.classList.remove('hidden');
+        pMsg.textContent = 'Colab L4 サーバー未接続です。universal_3d_h3_colab_l4.ipynb を起動して接続するか、参照素材・設定JSONを保存してください。';
+        pPct.textContent = '--'; pBar.style.width = '0%';
+        return;
+      }
+      try {
+        pBox.classList.remove('hidden'); oBox.classList.add('hidden');
+        pMsg.textContent = '参照素材を Colab L4 へ送信中...'; pPct.textContent = '15%'; pBar.style.width = '15%';
+        const fd = new FormData();
+        fd.append('config', JSON.stringify(getConfig()));
+        refImgs.forEach((x,i) => fd.append(`ref_image_${i}`, x.blob, x.name));
+        refVids.forEach((x,i) => fd.append(`ref_video_${i}`, x.blob, x.name));
+        refAuds.forEach((x,i) => fd.append(`ref_audio_${i}`, x.blob, x.name));
+
+        const res = await fetch(`${backendBase}/api/generate`, { method:'POST', body:fd });
+        if (!res.ok) throw new Error(await res.text());
+        const job = await res.json();
+
+        while (true) {
+          await new Promise(r => setTimeout(r, 3000));
+          const st = await (await fetch(`${backendBase}/api/status/${job.job_id}`)).json();
+          pMsg.textContent = st.message || '生成中...';
+          pPct.textContent = `${st.progress||40}%`; pBar.style.width = `${st.progress||40}%`;
+          if (st.state === 'done') {
+            oBox.classList.remove('hidden');
+            oBox.innerHTML = `<div class="text-xs font-bold text-[var(--success)]">生成完了（SD 24fps + ステレオ音声）</div>
+              <video src="${backendBase}${st.video_url}" controls autoplay loop class="w-full rounded bg-black"></video>
+              <a href="${backendBase}${st.video_url}" download class="block text-center py-1.5 rounded text-xs font-bold bg-[var(--primary)] text-[var(--primary-foreground)]">MP4 をダウンロード</a>`;
+            break;
+          }
+          if (st.state === 'error') throw new Error(st.error || '生成エラー');
+        }
+      } catch (e) { pMsg.textContent = 'エラー: ' + e.message; }
+    });
+
+    document.getElementById('btn-shutdown').addEventListener('click', async () => {
+      if (!backendOK) { alert('現在 Colab L4 サーバー未接続です。'); return; }
+      if (!confirm('Google Colab の L4 GPU ランタイムを切断・削除しますか？')) return;
+      await fetch(`${backendBase}/api/shutdown_runtime`, { method:'POST' });
+      alert('ランタイム終了リクエストを送信しました。');
+      testBackend();
+    });
+
+    // =========================================================================
+    // 5. Render Loop
+    // =========================================================================
+    let lastT = performance.now();
+    function renderFrame(dt) {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const w = Math.max(320, Math.floor(rect.width)), h = Math.max(180, Math.floor(rect.height));
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+      if (isPlaying) { seqT = (seqT + dt) % 10; tlSlider.value = seqT.toFixed(2); }
+      document.getElementById('tl-lbl').textContent = `${seqT.toFixed(1)}s`;
+
+      let pos, tgt;
+      if (manualCam) {
+        pos = [target[0]+Math.sin(yaw)*Math.cos(pitch)*dist, Math.max(0.5, target[1]+Math.sin(pitch)*dist), target[2]+Math.cos(yaw)*Math.cos(pitch)*dist];
+        tgt = target;
+        document.getElementById('cam-badge').textContent = 'カメラ: 手動オービット';
+      } else {
+        const ev = evalCam(seqT); pos = ev.pos; tgt = ev.tgt;
+        document.getElementById('cam-badge').textContent = `カメラ: ${ev.lbl}`;
+      }
+
+      const lt = LIGHTS[curLight];
+      gl.viewport(0, 0, w, h);
+      gl.clearColor(lt.sky[0], lt.sky[1], lt.sky[2], 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+
+      const vp = M4.mul(M4.persp(46*Math.PI/180, w/h, 0.2, 220), M4.lookAt(pos, tgt, [0,1,0]));
+      gl.useProgram(prog);
+      gl.uniformMatrix4fv(U.vp, false, vp);
+      gl.uniform3fv(U.cam, pos);
+      gl.uniform3fv(U.kDir, lt.kDir); gl.uniform3fv(U.kCol, lt.kCol); gl.uniform3fv(U.fCol, lt.fCol);
+      gl.uniform3fv(U.amb, lt.amb); gl.uniform3fv(U.sky, lt.sky);
+      gl.bindVertexArray(sceneVAO);
+      gl.drawArrays(gl.TRIANGLES, 0, sceneVerts);
+    }
+
+    const isManual = new URLSearchParams(location.search).get('manual') === '1';
+    function loop(now) {
+      requestAnimationFrame(loop);
+      renderFrame(Math.min((now - lastT)*0.001, 0.05));
+      lastT = now;
+    }
+    if (!isManual) requestAnimationFrame(loop);
+    window.__UNIVERSAL_STUDIO__ = { renderFrame, loadPresetScene };
+  })();
+  </script>
+</body>
+</html>
