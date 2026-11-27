@@ -67,6 +67,50 @@ def find_model(subdir: str, keywords: list[str]) -> str | None:
     return files[0].name if files else None
 
 
+ASPECT_SPECS: dict[str, dict[str, tuple[int, int]]] = {
+    "16:9": {"gen": (1280, 704), "720p": (1280, 720), "1080p": (1920, 1080)},
+    "9:16": {"gen": (704, 1280), "720p": (720, 1280), "1080p": (1080, 1920)},
+    "4:3":  {"gen": (960, 704),  "720p": (960, 720),  "1080p": (1440, 1080)},
+    "3:4":  {"gen": (704, 960),  "720p": (720, 960),  "1080p": (1080, 1440)},
+    "1:1":  {"gen": (736, 736),  "720p": (720, 720),  "1080p": (1080, 1080)},
+}
+
+
+def resolve_video_spec(cfg: dict) -> tuple[int, int, int, int, int]:
+    """Return (gen_w, gen_h, target_w, target_h, target_fps)."""
+    aspect = str(cfg.get("aspect_ratio", "16:9"))
+    tier = str(cfg.get("resolution_tier", "720p")).lower()
+    if aspect not in ASPECT_SPECS:
+        aspect = "16:9"
+    if tier not in ("720p", "1080p"):
+        tier = "720p"
+    gen_w, gen_h = ASPECT_SPECS[aspect]["gen"]
+    target_w, target_h = ASPECT_SPECS[aspect][tier]
+    target_fps = int(cfg.get("fps", 24))
+    if target_fps not in (24, 30, 60):
+        target_fps = 24
+    return gen_w, gen_h, target_w, target_h, target_fps
+
+
+def master_output_video(raw_mp4: Path, target_w: int, target_h: int, target_fps: int) -> Path:
+    """Scale to exact 720p/1080p and interpolate to 30/60fps when needed."""
+    out_mp4 = raw_mp4.with_name(f"{raw_mp4.stem}_{target_w}x{target_h}_{target_fps}fps.mp4")
+    vf_parts = [f"scale={target_w}:{target_h}:flags=lanczos"]
+    if target_fps > 24:
+        vf_parts.append(f"minterpolate=fps={target_fps}:mi_mode=mci:mc_mode=aobmc:vsbmc=1")
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-i", str(raw_mp4),
+            "-vf", ",".join(vf_parts),
+            "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p",
+            "-c:a", "copy",
+            str(out_mp4),
+        ],
+        check=True,
+    )
+    return out_mp4
+
+
 def build_comfy_workflow(
     cfg: dict,
     saved_imgs: list[str],
@@ -74,8 +118,7 @@ def build_comfy_workflow(
     saved_auds: list[str],
 ) -> dict:
     mode = cfg.get("mode", "ref2va").lower()
-    w = int(cfg.get("resolution", {}).get("width", 832))
-    h = int(cfg.get("resolution", {}).get("height", 480))
+    gen_w, gen_h, _, _, _ = resolve_video_spec(cfg)
     frames = int(cfg.get("frames", 124))
     steps = int(cfg.get("steps", 8))
     prompt_text = cfg.get("prompt", "")
@@ -109,8 +152,8 @@ def build_comfy_workflow(
             "video_vae": ["3", 0],
             "audio_vae": ["4", 0],
             "prompt": prompt_text,
-            "width": w,
-            "height": h,
+            "width": gen_w,
+            "height": gen_h,
             "length": frames,
         }
         for idx, fn in enumerate(saved_imgs[:9]):
@@ -130,14 +173,13 @@ def build_comfy_workflow(
             nid += 1
         wf["30"] = {"class_type": "MiniMaxH3ReferenceToVideo", "inputs": ref_inputs}
     else:
-        # FL2VA (開始/終了キーフレーム補間) または T2VA (テキストのみ)
         fl_inputs: dict = {
             "clip": ["2", 0],
             "video_vae": ["3", 0],
             "audio_vae": ["4", 0],
             "prompt": prompt_text,
-            "width": w,
-            "height": h,
+            "width": gen_w,
+            "height": gen_h,
             "length": frames,
         }
         if mode == "fl2va" and len(saved_imgs) >= 1:
@@ -169,7 +211,7 @@ def build_comfy_workflow(
             "images": ["36", 0],
             "frame_rate": 24,
             "loop_count": 0,
-            "filename_prefix": f"h3_{mode}_sd",
+            "filename_prefix": f"h3_{mode}",
             "format": "video/h264-mp4",
             "save_output": True,
         },
@@ -177,13 +219,13 @@ def build_comfy_workflow(
     return wf
 
 
-def poll_job(job_id: str, prompt_id: str, prefix: str):
+def poll_job(job_id: str, prompt_id: str, prefix: str, target_w: int, target_h: int, target_fps: int):
     t0 = time.time()
     try:
         while True:
             time.sleep(2.5)
             el = time.time() - t0
-            JOBS[job_id]["progress"] = min(92, 30 + int(el / 2.2))
+            JOBS[job_id]["progress"] = min(88, 30 + int(el / 2.4))
             JOBS[job_id]["message"] = f"MiniMax H3 推論中... ({int(el)}秒経過)"
 
             hist = json.loads(urllib.request.urlopen(f"{COMFY_URL}/history/{prompt_id}", timeout=5).read().decode())
@@ -200,7 +242,16 @@ def poll_job(job_id: str, prompt_id: str, prefix: str):
                     if cands:
                         mp4 = cands[-1].name
                 if mp4:
-                    JOBS[job_id].update({"state": "done", "progress": 100, "message": "生成完了！", "video_url": f"/api/output/{mp4}"})
+                    raw_path = COMFY_OUTPUT / Path(mp4).name
+                    JOBS[job_id]["progress"] = 94
+                    JOBS[job_id]["message"] = f"{target_w}×{target_h} / {target_fps}fps マスタリング中..."
+                    final_path = master_output_video(raw_path, target_w, target_h, target_fps)
+                    JOBS[job_id].update({
+                        "state": "done",
+                        "progress": 100,
+                        "message": f"生成完了 ({target_w}×{target_h} · {target_fps}fps)",
+                        "video_url": f"/api/output/{final_path.name}",
+                    })
                 else:
                     JOBS[job_id].update({"state": "error", "error": "出力MP4が見つかりませんでした。"})
                 return
@@ -223,8 +274,7 @@ async def generate(request: Request):
     COMFY_INPUT.mkdir(parents=True, exist_ok=True)
     form = await request.form()
     cfg = json.loads(str(form.get("config", "{}")))
-    w = int(cfg.get("resolution", {}).get("width", 832))
-    h = int(cfg.get("resolution", {}).get("height", 480))
+    gen_w, gen_h, target_w, target_h, target_fps = resolve_video_spec(cfg)
 
     imgs, vids, auds = [], [], []
     for key, val in form.multi_items():
@@ -239,11 +289,11 @@ async def generate(request: Request):
         elif key.startswith("ref_video_"):
             tmp = COMFY_INPUT / f"raw_{uuid.uuid4().hex[:8]}_{orig}"
             tmp.write_bytes(raw)
-            out_name = f"ref_sd24fps_{uuid.uuid4().hex[:8]}.mp4"
+            out_name = f"ref_24fps_{uuid.uuid4().hex[:8]}.mp4"
             out_path = COMFY_INPUT / out_name
             subprocess.run([
                 "ffmpeg", "-y", "-i", str(tmp), "-t", "5.0",
-                "-vf", f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,fps=24",
+                "-vf", f"scale={gen_w}:{gen_h}:force_original_aspect_ratio=decrease,pad={gen_w}:{gen_h}:(ow-iw)/2:(oh-ih)/2,fps=24",
                 "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", "-an", str(out_path),
             ], check=True)
             tmp.unlink(missing_ok=True)
@@ -265,7 +315,11 @@ async def generate(request: Request):
     job_id = uuid.uuid4().hex[:10]
     mode = cfg.get("mode", "ref2va").lower()
     JOBS[job_id] = {"state": "running", "progress": 25, "message": "ComfyUI キューに投入しました"}
-    threading.Thread(target=poll_job, args=(job_id, prompt_id, f"h3_{mode}_sd"), daemon=True).start()
+    threading.Thread(
+        target=poll_job,
+        args=(job_id, prompt_id, f"h3_{mode}", target_w, target_h, target_fps),
+        daemon=True,
+    ).start()
     return {"job_id": job_id, "prompt_id": prompt_id}
 
 

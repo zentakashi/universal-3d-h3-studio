@@ -395,6 +395,20 @@
     .m3-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .m3-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .m3-grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .m3-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+
+    /* Live Aspect Ratio Viewfinder Overlay */
+    .stage-frame-wrap {
+      position: absolute; inset: 0; z-index: 4;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; overflow: hidden;
+    }
+    .stage-frame-box {
+      border: 1.5px solid rgba(168, 199, 250, 0.55);
+      border-radius: 6px;
+      box-shadow: 0 0 0 9999px rgba(8, 10, 15, 0.42);
+      transition: width 220ms var(--md-ease), height 220ms var(--md-ease);
+    }
 
     .m3-chip {
       height: 36px; padding: 0 12px;
@@ -512,7 +526,7 @@
         </svg>
       </div>
       <h1 class="m3-title">Universal 3D × MiniMax H3 Studio</h1>
-      <span class="m3-tag">SD · Ref2VA</span>
+      <span class="m3-tag">HD · Ref2VA</span>
     </div>
 
     <div class="m3-topbar-actions">
@@ -547,10 +561,16 @@
     <section id="drop-zone">
       <canvas id="glcanvas"></canvas>
 
+      <!-- Live Aspect Ratio Viewfinder -->
+      <div class="stage-frame-wrap" aria-hidden="true">
+        <div id="stage-frame-box" class="stage-frame-box"></div>
+      </div>
+
       <!-- Top Floating Pills -->
       <div class="stage-top">
         <div id="scene-badge" class="stage-pill">Scene: 都市・建築ブロック</div>
         <div id="cam-badge" class="stage-pill stage-pill-accent">カメラ: 360° オービット</div>
+        <button id="spec-badge" type="button" class="stage-pill mono" style="pointer-events:auto; cursor:pointer;" title="出力比率・解像度・FPSを変更">16:9 · 720p · 24fps</button>
         <div id="rec-badge" class="stage-pill stage-pill-rec hidden">● REC 0.0s / 5.0s</div>
       </div>
 
@@ -597,7 +617,7 @@
               <polygon points="23 7 16 12 23 17 23 7"/>
               <rect x="1" y="5" width="15" height="14" rx="2"/>
             </svg>
-            <span>5秒SD録画</span>
+            <span>5秒録画</span>
           </button>
         </div>
       </div>
@@ -738,47 +758,69 @@
           </div>
 
           <div class="m3-card">
-            <span class="m3-label" style="color:var(--md-on-surface)">生成モード &amp; SD パラメータ</span>
+            <div class="m3-section-header">
+              <span class="m3-label" style="color:var(--md-on-surface)">生成モード &amp; 出力フォーマット</span>
+              <span id="spec-readout" class="m3-label mono">1280×720 · 24fps</span>
+            </div>
             <div class="m3-grid-3" id="h3-modes">
               <button data-h3mode="ref2va" type="button" class="h3m-btn m3-chip is-active">Ref2VA</button>
               <button data-h3mode="fl2va" type="button" class="h3m-btn m3-chip">FL2VA</button>
               <button data-h3mode="t2va" type="button" class="h3m-btn m3-chip">T2VA</button>
             </div>
 
-            <div class="m3-grid-2">
-              <label class="m3-field-group">
-                <span class="m3-label">SD解像度 (16:9)</span>
-                <select id="sel-res" class="m3-select">
-                  <option value="832x480" selected>832 × 480 (標準SD)</option>
-                  <option value="640x360">640 × 360 (高速SD)</option>
-                </select>
-              </label>
-              <label class="m3-field-group">
-                <span class="m3-label">フレーム数 (24fps)</span>
-                <select id="sel-frames" class="m3-select">
-                  <option value="124" selected>124f (約5.17秒)</option>
-                  <option value="107">107f (約4.46秒)</option>
-                  <option value="141">141f (約5.88秒)</option>
-                </select>
-              </label>
+            <div class="m3-field-group">
+              <span class="m3-label">画面比率</span>
+              <div class="m3-grid-5" id="aspect-presets">
+                <button data-aspect="16:9" type="button" class="aspect-btn m3-chip is-active" style="padding:0 4px;">16:9</button>
+                <button data-aspect="9:16" type="button" class="aspect-btn m3-chip" style="padding:0 4px;">9:16</button>
+                <button data-aspect="4:3" type="button" class="aspect-btn m3-chip" style="padding:0 4px;">4:3</button>
+                <button data-aspect="3:4" type="button" class="aspect-btn m3-chip" style="padding:0 4px;">3:4</button>
+                <button data-aspect="1:1" type="button" class="aspect-btn m3-chip" style="padding:0 4px;">1:1</button>
+              </div>
             </div>
 
             <div class="m3-grid-2">
+              <div class="m3-field-group">
+                <span class="m3-label">解像度</span>
+                <div class="m3-grid-2" id="res-presets">
+                  <button data-res="720p" type="button" class="res-btn m3-chip is-active">720p</button>
+                  <button data-res="1080p" type="button" class="res-btn m3-chip">1080p</button>
+                </div>
+              </div>
+              <div class="m3-field-group">
+                <span class="m3-label">フレームレート</span>
+                <div class="m3-grid-3" id="fps-presets">
+                  <button data-fps="24" type="button" class="fps-btn m3-chip is-active" style="padding:0 4px;">24</button>
+                  <button data-fps="30" type="button" class="fps-btn m3-chip" style="padding:0 4px;">30</button>
+                  <button data-fps="60" type="button" class="fps-btn m3-chip" style="padding:0 4px;">60</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="m3-grid-3">
               <label class="m3-field-group">
-                <span class="m3-label">ステップ (Turbo)</span>
+                <span class="m3-label">長さ (約秒)</span>
+                <select id="sel-frames" class="m3-select">
+                  <option value="124" selected>約 5.2 秒</option>
+                  <option value="107">約 4.5 秒</option>
+                  <option value="141">約 5.9 秒</option>
+                </select>
+              </label>
+              <label class="m3-field-group">
+                <span class="m3-label">ステップ</span>
                 <select id="sel-steps" class="m3-select">
-                  <option value="8" selected>8 steps (推奨)</option>
-                  <option value="4">4 steps (最速)</option>
-                  <option value="20">20 steps (標準)</option>
+                  <option value="8" selected>8 (推奨)</option>
+                  <option value="4">4 (最速)</option>
+                  <option value="20">20 (標準)</option>
                 </select>
               </label>
               <label class="m3-field-group">
                 <span class="m3-label">スタイル</span>
                 <select id="sel-tpl" class="m3-select">
-                  <option value="cinema">映画実写 (35mm)</option>
-                  <option value="archviz">建築ビジュアライズ</option>
-                  <option value="product">プロダクトCM</option>
-                  <option value="anime">シネマティックアニメ</option>
+                  <option value="cinema">映画実写</option>
+                  <option value="archviz">建築</option>
+                  <option value="product">CM</option>
+                  <option value="anime">アニメ</option>
                 </select>
               </label>
             </div>
@@ -795,7 +837,7 @@
           <div style="display:flex; flex-direction:column; gap:10px;">
             <button id="btn-generate" type="button" class="m3-btn m3-btn-filled m3-btn-lg">
               <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-              <span>MiniMax H3 (SD) で動画＋音声を生成</span>
+              <span>MiniMax H3 で動画＋音声を生成</span>
             </button>
 
             <div id="prog-box" class="m3-card hidden">
@@ -1268,16 +1310,60 @@
     }
     tabBtns.forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
     document.getElementById('backend-pill').addEventListener('click', () => switchTab('gen'));
+    document.getElementById('spec-badge').addEventListener('click', () => switchTab('gen'));
 
-    // Capture & 5s SD Recording
+    // =========================================================================
+    // 3b. Aspect Ratio (16:9, 9:16, 4:3, 3:4, 1:1), 720p/1080p & 24/30/60fps
+    // =========================================================================
+    const ASPECT_SPECS = {
+      '16:9': { ratio: 16/9, '720p': [1280, 720],  '1080p': [1920, 1080] },
+      '9:16': { ratio: 9/16, '720p': [720, 1280],  '1080p': [1080, 1920] },
+      '4:3':  { ratio: 4/3,  '720p': [960, 720],   '1080p': [1440, 1080] },
+      '3:4':  { ratio: 3/4,  '720p': [720, 960],   '1080p': [1080, 1440] },
+      '1:1':  { ratio: 1,    '720p': [720, 720],   '1080p': [1080, 1080] },
+    };
+    let curAspect = '16:9', curRes = '720p', curFps = 24;
+
+    function updateViewfinder() {
+      const box = document.getElementById('stage-frame-box');
+      if (!box) return;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const padX = 28, padY = 86;
+      const maxW = Math.max(120, rect.width - padX * 2);
+      const maxH = Math.max(120, rect.height - padY * 2);
+      const r = ASPECT_SPECS[curAspect].ratio;
+      let fw = maxW, fh = fw / r;
+      if (fh > maxH) { fh = maxH; fw = fh * r; }
+      box.style.width = `${Math.round(fw)}px`;
+      box.style.height = `${Math.round(fh)}px`;
+    }
+
+    function updateSpecUI() {
+      const [w, h] = ASPECT_SPECS[curAspect][curRes];
+      document.getElementById('spec-badge').textContent = `${curAspect} · ${curRes} · ${curFps}fps`;
+      document.getElementById('spec-readout').textContent = `${w}×${h} · ${curFps}fps`;
+      updateViewfinder();
+    }
+    window.addEventListener('resize', updateViewfinder);
+
+    // Capture (cropped to active aspect ratio) & 5s Recording (at active FPS)
     function snapImage() {
       if (refImgs.length >= 9) { showToast('参照画像は最大 9 枚までです'); return; }
       renderFrame(0);
-      canvas.toBlob(blob => {
+      const r = ASPECT_SPECS[curAspect].ratio;
+      const cw = canvas.width, ch = canvas.height;
+      let sw = cw, sh = cw / r;
+      if (sh > ch) { sh = ch; sw = sh * r; }
+      const sx = (cw - sw) / 2, sy = (ch - sh) / 2;
+      const off = document.createElement('canvas');
+      const [tw, th] = ASPECT_SPECS[curAspect][curRes];
+      off.width = tw; off.height = th;
+      off.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, tw, th);
+      off.toBlob(blob => {
         if (!blob) return;
-        refImgs.push({ name: `capture_${refImgs.length+1}.png`, url: canvas.toDataURL('image/png'), blob });
+        refImgs.push({ name: `capture_${curAspect.replace(':','x')}_${refImgs.length+1}.png`, url: off.toDataURL('image/png'), blob });
         renderMediaLists(); switchTab('media');
-        showToast(`<Picture ${refImgs.length}> をキャプチャしました`);
+        showToast(`<Picture ${refImgs.length}> (${curAspect} · ${tw}×${th}) をキャプチャしました`);
       }, 'image/png');
     }
     document.getElementById('btn-snap').addEventListener('click', snapImage);
@@ -1289,23 +1375,23 @@
       if (!canvas.captureStream || typeof MediaRecorder === 'undefined') { showToast('このブラウザでは録画非対応です'); return; }
       recording = true; manualCam = false; isPlaying = true;
       updatePlayIcon();
-      const stream = canvas.captureStream(24);
+      const stream = canvas.captureStream(curFps);
       const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-      const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 3200000 });
+      const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: curRes === '1080p' ? 8000000 : 4500000 });
       const chunks = [];
       mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
       mr.onstop = () => {
         recording = false; document.getElementById('rec-badge').classList.add('hidden');
         const blob = new Blob(chunks, { type: 'video/webm' });
-        refVids.push({ name: `camera_sd24fps_${refVids.length+1}.webm`, url: URL.createObjectURL(blob), blob });
+        refVids.push({ name: `camera_${curAspect.replace(':','x')}_${curRes}_${curFps}fps_${refVids.length+1}.webm`, url: URL.createObjectURL(blob), blob });
         renderMediaLists(); switchTab('media');
-        showToast(`<Video ${refVids.length}> の 5 秒録画が完了しました`);
+        showToast(`<Video ${refVids.length}> (${curFps}fps) の 5 秒録画が完了しました`);
       };
       const badge = document.getElementById('rec-badge'); badge.classList.remove('hidden');
       const t0 = performance.now();
       const iv = setInterval(() => {
         const s = Math.min(5, (performance.now()-t0)/1000);
-        badge.textContent = `● REC ${s.toFixed(1)}s / 5.0s`;
+        badge.textContent = `● REC ${s.toFixed(1)}s / 5.0s (${curFps}fps)`;
         if (s >= 5) { clearInterval(iv); if (mr.state === 'recording') mr.stop(); }
       }, 100);
       mr.start();
@@ -1350,6 +1436,18 @@
     document.querySelectorAll('.cam-btn').forEach(b => b.addEventListener('click', () => { toggleGroup('.cam-btn', b); camMode=b.dataset.cam; manualCam=false; isPlaying=true; updatePlayIcon(); }));
     document.querySelectorAll('.light-btn').forEach(b => b.addEventListener('click', () => { toggleGroup('.light-btn', b); curLight=b.dataset.light; }));
 
+    document.querySelectorAll('.aspect-btn').forEach(b => b.addEventListener('click', () => {
+      curAspect = b.dataset.aspect; toggleGroup('.aspect-btn', b); updateSpecUI();
+      showToast(`画面比率を ${curAspect} に変更しました`);
+    }));
+    document.querySelectorAll('.res-btn').forEach(b => b.addEventListener('click', () => {
+      curRes = b.dataset.res; toggleGroup('.res-btn', b); updateSpecUI();
+    }));
+    document.querySelectorAll('.fps-btn').forEach(b => b.addEventListener('click', () => {
+      curFps = Number(b.dataset.fps); toggleGroup('.fps-btn', b); updateSpecUI();
+    }));
+    updateSpecUI();
+
     document.getElementById('btn-play').addEventListener('click', () => { isPlaying=!isPlaying; updatePlayIcon(); });
     const tlSlider = document.getElementById('tl-slider');
     tlSlider.addEventListener('input', e => { seqT = parseFloat(e.target.value); manualCam = false; });
@@ -1367,7 +1465,7 @@
       cinema: 'Photorealistic 35mm cinema footage with natural lighting, rich textures, atmospheric depth, and shallow depth of field. Stereo audio: realistic ambient environment and subtle cinematic soundscape.',
       archviz: 'Architectural visualization film, photorealistic materials, physically accurate reflections and global illumination, smooth architectural camera glide. Stereo audio: quiet urban ambience and soft breeze.',
       product: 'High-end commercial product film, studio rim lighting, crisp metallic and glass reflections, sleek smooth camera reveal. Stereo audio: subtle modern electronic pulse and crisp foley.',
-      anime: 'High-budget theatrical Japanese anime cinematography, expressive lighting, detailed painterly backgrounds, fluid 24fps motion. Stereo audio: atmospheric wind and emotional orchestral undertone.',
+      anime: 'High-budget theatrical Japanese anime cinematography, expressive lighting, detailed painterly backgrounds, fluid motion. Stereo audio: atmospheric wind and emotional orchestral undertone.',
     };
 
     function buildPrompt() {
@@ -1406,12 +1504,14 @@
     if (location.protocol.startsWith('http')) testBackend();
 
     function getConfig() {
-      const [w, h] = document.getElementById('sel-res').value.split('x').map(Number);
+      const [w, h] = ASPECT_SPECS[curAspect][curRes];
       return {
         mode: h3Mode,
+        aspect_ratio: curAspect,
+        resolution_tier: curRes,
         resolution: { width: w, height: h },
         frames: Number(document.getElementById('sel-frames').value),
-        fps: 24,
+        fps: curFps,
         steps: Number(document.getElementById('sel-steps').value),
         cfg: 1.0,
         prompt: document.getElementById('txt-prompt').value,
@@ -1426,7 +1526,7 @@
     document.getElementById('btn-export-cfg').addEventListener('click', () => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([JSON.stringify(getConfig(), null, 2)], { type: 'application/json' }));
-      a.download = `minimax_h3_${h3Mode}_sd_config.json`;
+      a.download = `minimax_h3_${h3Mode}_${curAspect.replace(':','x')}_${curRes}_${curFps}fps.json`;
       a.click();
     });
 
